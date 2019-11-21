@@ -1,37 +1,41 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-from flask_login import current_user
-from haystack_web.models import User
+from wtforms import StringField, SubmitField, SelectField, DateField
+from wtforms.validators import DataRequired, Email, Length, ValidationError, NumberRange
 
 
-class RegistrationForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(5, 20)])
+city_group = ('Johor', 'Kedah', 'Kelantan', 'Kuala Lumpur', 'Labuan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Penang',
+              'Perak', 'Perlis', 'Putrajaya', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu')
+
+
+class PurchaseForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(min=2)])
+    phone = StringField(label='Mobile No', validators=[DataRequired(), Length(min=10, max=11,
+                                                            message="Mobile No should consist digits only.")])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Sign Up')
+    add1 = StringField('Address 1', validators=[DataRequired()])
+    add2 = StringField('Address 2', validators=[DataRequired()])
+    city = StringField('City', validators=[DataRequired()])
+    state = SelectField(label='State', choices=[(group, group) for group in city_group])
+    postcode = StringField(label='Postcode',
+                           validators=[DataRequired(), Length(min=5, max=5,
+                                                              message="Postcode should be 5 digits only.")])
+    submit = SubmitField('Continue')
+
+    def validate_phone(self, phone):
+        print("im here a1")
+        if len(phone.data) > 11:
+            print("im here 1")
+            raise ValidationError('Invalid Mobile Number.')
+        if not str(phone.data).isdigit():
+            print("im here 2")
+            raise ValidationError('Mobile Number should consist digit only.')
+
+    def validate_postcode(self, postcode):
+        if len(postcode.data) > 5:
+            raise ValidationError('Invalid Postcode.')
+        if not str(postcode.data).isdigit():
+            raise ValidationError('Invalid Postcode.')
 
 
-class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
 
 
-class UpdateAccountForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=2, max=20)])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    submit = SubmitField('Update')
-
-    def validate_username(self, username):
-        if username.data != current_user.username:
-            user = User.query.filter_by(username=username.data).first()
-            if user:
-                raise ValidationError('That username is taken. Please choose a different one.')
-
-    def validate_email(self, email):
-        if email.data != current_user.email:
-            user = User.query.filter_by(email=email.data).first()
-            if user:
-                raise ValidationError('That email is taken. Please choose a different one.')
